@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مطعم اصل الدار - طلبات التوصيل</title>
+    <!-- استيراد خط كاييرو العصري -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: #f4f6f9; color: #333; padding-bottom: 50px; overflow-x: hidden; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* الهيدر العصري */
+        header { background: linear-gradient(135deg, #ff7e5f, #feb47b); color: white; padding: 20px 25px; display: flex; justify-content: space-between; align-items: center; border-bottom-right-radius: 30px; border-bottom-left-radius: 30px; box-shadow: 0 4px 15px rgba(255, 126, 95, 0.3); animation: fadeIn 0.8s ease; }
+        header h1 { font-size: 1.5rem; font-weight: 900; }
+        
+        .cart-toggle-btn { background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 8px 15px; border-radius: 10px; font-size: 1rem; cursor: pointer; transition: 0.3s; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+        .cart-toggle-btn:hover { background: rgba(255, 255, 255, 0.4); transform: scale(1.05); }
+
+        /* طبقة التعتيم الخلفية */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* القائمة الجانبية المنزلقة (السلة) بحجم متوازن */
+        .sidebar { height: 100%; width: 300px; position: fixed; z-index: 1000; top: 0; right: -300px; background-color: #ffffff; overflow-x: hidden; transition: right 0.4s cubic-bezier(0.77, 0, 0.175, 1); padding: 20px; box-shadow: -5px 0 25px rgba(0,0,0,0.15); display: flex; flex-direction: column; }
+        .sidebar.open { right: 0; }
+
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #edf2f7; padding-bottom: 12px; margin-bottom: 15px; }
+        .sidebar-header h3 { color: #2d3748; font-size: 1.2rem; }
+        .close-btn { font-size: 1.5rem; background: none; border: none; cursor: pointer; color: #a0aec0; }
+        .close-btn:hover { color: #e53e3e; }
+
+        .cart-items-list { flex-grow: 1; overflow-y: auto; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; background: #f7fafc; padding: 10px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem; }
+        .cart-item button { background: #feb2b2; color: #c53030; border: none; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+        .cart-total { font-weight: bold; font-size: 1.1rem; color: #e53e3e; border-top: 2px solid #edf2f7; padding-top: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; }
+
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+        h2.section-title { margin: 25px 0 15px 0; font-size: 1.3rem; color: #2d3748; border-right: 4px solid #ff7e5f; padding-right: 10px; animation: fadeIn 1s ease; }
+
+        /* شبكة الأطباق */
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+        
+        .food-card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: transform 0.3s ease, box-shadow 0.3s ease; display: flex; flex-direction: column; justify-content: space-between; animation: fadeIn 1.2s ease; }
+        .food-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        
+        .food-info { padding: 20px; }
+        .food-info h3 { font-size: 1.2rem; color: #1a202c; margin-bottom: 8px; font-weight: 700; }
+        .food-info p { font-size: 0.85rem; color: #718096; margin-bottom: 15px; }
+        .food-price { font-size: 1.1rem; color: #e53e3e; font-weight: 700; }
+        
+        .add-btn { background-color: #fffaf0; color: #dd6b20; border: 2px solid #ed8936; padding: 12px; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.3s ease; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+        .add-btn:hover { background-color: #ed8936; color: white; }
+
+        /* صندوق إتمام الطلب */
+        .checkout-box { background: white; border-radius: 20px; padding: 25px; margin-top: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); animation: fadeIn 1.4s ease; }
+        .checkout-box h3 { margin-bottom: 20px; color: #2d3748; font-size: 1.3rem; }
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #4a5568; }
+        .input-group input, .input-group textarea { width: 100%; padding: 12px 15px; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.95rem; background-color: #f7fafc; outline: none; transition: all 0.3s ease; }
+        .input-group input:focus, .input-group textarea:focus { border-color: #ff7e5f; background-color: #fff; box-shadow: 0 0 8px rgba(255, 126, 95, 0.2); }
+
+        .submit-btn { background: linear-gradient(135deg, #48bb78, #38a169); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 1.1rem; font-weight: 700; cursor: pointer; width: 100%; box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3); transition: all 0.3s ease; }
+        .submit-btn:hover { opacity: 0.95; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+
+    <!-- طبقة التعتيم الخلفية -->
+    <div id="overlay" class="overlay" onclick="closeSidebar()"></div>
+
+    <!-- القائمة الجانبية المنزلقة (سلة المشتريات) -->
+    <div id="mySidebar" class="sidebar">
+        <div class="sidebar-header">
+            <h3>🛒 سلة المشتريات</h3>
+            <button class="close-btn" onclick="closeSidebar()">&times;</button>
+        </div>
+        
+        <div class="cart-items-list" id="cartItemsList">
+            <p style="color: #a0aec0; text-align: center; margin-top: 30px;">السلة فارغة حالياً</p>
+        </div>
+
+        <div class="cart-total">
+            <span>الإجمالي:</span>
+            <span id="cartTotalPrice">0 ريال</span>
+        </div>
+
+        <button onclick="closeSidebar()" style="background: #2d3748; color: white; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-weight: 600;">متابعة التسوق</button>
+    </div>
+
+    <!-- الهيدر العصري -->
+    <header>
+        <h1>مطعم اصل الدار</h1>
+        <button class="cart-toggle-btn" onclick="openSidebar()">🛒 السلة (<span id="cartCount">0</span>)</button>
+    </header>
+
+    <div class="container">
+        <h2 class="section-title">قائمة الطعام المميزة</h2>
+        
+        <!-- شبكة الوجبات -->
+        <div class="menu-grid">
+            <div class="food-card">
+                <div class="food-info">
+                    <h3>برجر لحم ديلوكس</h3>
+                    <p>لحم مشوي طازج مع الجبن والخضار الطازجة والصلصة السرية.</p>
+                    <div class="food-price">3000 ريال</div>
+                </div>
+                <button class="add-btn" onclick="addToCart('برجر لحم ديلوكس', 3000)">+ إضافة للسلة</button>
+            </div>
+
+            <div class="food-card">
+                <div class="food-info">
+                    <h3>بيتزا تشيز لورفر</h3>
+                    <p>عجينة إيطالية هشة مغطاة بطبقة مضاعفة من جبن الموتزاريلا.</p>
+                    <div class="food-price">5000 ريال</div>
+                </div>
+                <button class="add-btn" onclick="addToCart('بيتزا تشيز لورفر', 5000)">+ إضافة للسلة</button>
+            </div>
+
+            <div class="food-card">
+                <div class="food-info">
+                    <h3>وجبة دجاج بروستد</h3>
+                    <p>قطع دجاج مقرمشة وذهبية تقدم مع البطاطس والثومية.</p>
+                    <div class="food-price">4000 ريال</div>
+                </div>
+                <button class="add-btn" onclick="addToCart('وجبة دجاج بروستد', 4000)">+ إضافة للسلة</button>
+            </div>
+        </div>
+
+        <!-- صندوق إتمام الطلب -->
+        <div class="checkout-box">
+            <h3>تفاصيل التوصيل</h3>
+            
+            <div class="input-group">
+                <label>الاسم الكريم</label>
+                <input type="text" id="name" placeholder="مثال: محمد أحمد">
+            </div>
+            
+            <div class="input-group">
+                <label>رقم الهاتف</label>
+                <input type="text" id="phone" placeholder="77xxxxxxx">
+            </div>
+            
+            <div class="input-group">
+                <label>العنوان بالتفصيل</label>
+                <textarea id="address" rows="2" placeholder="المدينة، الحي، أقرب معلم بارز..."></textarea>
+            </div>
+
+            <button class="submit-btn" onclick="submitOrder()">إرسال الطلب عبر الواتساب 🚀</button>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+
+        function openSidebar() {
+            document.getElementById("mySidebar").classList.add("open");
+            document.getElementById("overlay").classList.add("active");
+        }
+
+        function closeSidebar() {
+            document.getElementById("mySidebar").classList.remove("open");
+            document.getElementById("overlay").classList.remove("active");
+        }
+
+        function addToCart(itemName, price) {
+            cart.push({ name: itemName, price: price });
+            updateCartUI();
+            openSidebar();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            let listContainer = document.getElementById("cartItemsList");
+            let countBadge = document.getElementById("cartCount");
+            let totalElement = document.getElementById("cartTotalPrice");
+
+            countBadge.innerText = cart.length;
+
+            if (cart.length === 0) {
+                listContainer.innerHTML = '<p style="color: #a0aec0; text-align: center; margin-top: 30px;">السلة فارغة حالياً</p>';
+                totalElement.innerText = "0 ريال";
+                return;
+            }
+
+            let html = "";
+            let total = 0;
+
+            cart.forEach((item, index) => {
+                total += item.price;
+                html += `
+                    <div class="cart-item">
+                        <div>
+                            <strong>${item.name}</strong><br>
+                            <span style="color: #e53e3e;">${item.price} ريال</span>
+                        </div>
+                        <button onclick="removeFromCart(${index})">حذف</button>
+                    </div>
+                `;
+            });
+
+            listContainer.innerHTML = html;
+            totalElement.innerText = total + " ريال";
+        }
+
+        function submitOrder() {
+            let name = document.getElementById("name").value.trim();
+            let phone = document.getElementById("phone").value.trim();
+            let address = document.getElementById("address").value.trim();
+
+            if(!name || !phone || !address) {
+                alert("الرجاء تعبئة جميع بيانات التوصيل (الاسم، الهاتف، العنوان)!");
+                return;
+            }
+            if(cart.length === 0) {
+                alert("السلة فارغة! الرجاء اختيار وجبة واحدة على الأقل.");
+                return;
+            }
+
+            let itemsText = "";
+            let total = 0;
+            cart.forEach(item => {
+                itemsText += `- ${item.name} (${item.price} ريال)\n`;
+                total += item.price;
+            });
+
+            let textMessage = `طلب جديد للمطعم:🍽️\n${itemsText}الإجمالي: ${total} ريال\n\nبيانات العميل:👤\n- الاسم: ${name}\n- الهاتف: ${phone}\n- العنوان: ${address}`;
+            
+            // استبدل الرقم أدناه برقم واتساب المطعم الحقيقي
+            let restaurantPhone = "967774676142";
+            let whatsappUrl = `https://api.whatsapp.com/send?phone=${restaurantPhone}&text=${encodeURIComponent(textMessage)}`;
+            
+            window.open(whatsappUrl, '_blank');
+        }
+    </script>
+
+</body>
+</html>
